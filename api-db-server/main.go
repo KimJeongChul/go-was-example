@@ -2,10 +2,10 @@ package main
 
 import (
 	"go-was-example/api-db-server/database"
+	"log"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -19,21 +19,41 @@ func main() {
 
 	rdbHandler.Connect()
 
-	// Echo instance
-	e := echo.New()
+	ras := RestApiServer{
+		rdbHandler: &rdbHandler,
+	}
 
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	ras.router = mux.NewRouter()
+	ras.router.HandleFunc("/", ras.hello)
 
-	// Routes
-	e.GET("/", hello)
-
-	// Start server
-	e.Logger.Fatal(e.Start(":80"))
+	port := "80"
+	log.Println("Server Start " + port)
+	log.Fatal(http.ListenAndServe(":"+port, ras.router))
 }
 
-// Handler
-func hello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello, World!")
+type RestApiServer struct {
+	rdbHandler *database.RDBHandler
+	router     *mux.Router
+}
+
+// hello / hello 핸들러
+func (ras RestApiServer) hello(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "GET":
+		exist, users, errDB := ras.rdbHandler.GetUser()
+		if errDB != nil {
+			w.Write([]byte("Internal Server error 500"))
+		}
+		resultMsg := ""
+		if exist {
+			resultMsg += "Hello"
+			for _, user := range users {
+				resultMsg += ", " + user.UserName
+			}
+		} else {
+			resultMsg = "Hello, World!"
+		}
+		log.Println("/ api call hello handler response msg=" + resultMsg)
+		w.Write([]byte(resultMsg))
+	}
 }
