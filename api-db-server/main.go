@@ -44,6 +44,8 @@ func (ras RestApiServer) hello(w http.ResponseWriter, req *http.Request) {
 		if errDB != nil {
 			w.Write([]byte("Internal Server error 500"))
 		}
+		log.Println("User Query Result=", users)
+
 		resultMsg := ""
 		if exist {
 			resultMsg += "Hello"
